@@ -1,6 +1,6 @@
 /* 
  * C
- * Copyright 2015-2019 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2020 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -235,9 +235,12 @@ int32_t LLFS_File_IMPL_read_byte_on_done(int32_t file_id){
 		// 1 byte read: return the read byte
 		result = (uint8_t)params->data[0];
 	}
-	else {
-		SNI_throwNativeIOException(-1, "Internal error");
+	else if(result != LLFS_EOF) {
+		// Invalid value returned by the read_byte action
+		SNI_throwNativeIOException(result, "Internal error");
 	}
+	// else: result==LLFS_EOF: just return LLFS_EOF
+	
 	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
 
 	return result;
