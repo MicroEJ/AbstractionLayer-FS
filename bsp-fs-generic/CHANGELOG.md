@@ -1,3 +1,12 @@
+## 1.1.0 (2020-05-22)
+Features:
+  - M0074FS-147 Add native flush implementation
+  - M0074FS-149 Fix compilation warning/error: no value returned for non-void function.
+
+## 1.0.2-RC 
+Fixed:
+  - M0074FS-148: Fix CCO-FS-GENERIC after sni.h fix 
+
 ## 1.0.1 (2020-01-30)
 Fixed:
   - M0074FS-146: Read may throw an exception on EOF

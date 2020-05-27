@@ -1,6 +1,6 @@
 /* 
  * C
- * Copyright 2015-2019 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2020 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -60,7 +60,7 @@ int32_t LLFS_set_path_param(uint8_t* path, uint8_t* path_param){
 	return LLFS_OK;
 }
 
-static MICROEJ_ASYNC_WORKER_job_t* LLFS_allocate_path_job(uint8_t* path, SNI_callback* sni_retry_callback){
+static MICROEJ_ASYNC_WORKER_job_t* LLFS_allocate_path_job(uint8_t* path, SNI_callback sni_retry_callback){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, sni_retry_callback);
 	if(job == NULL){
 		// No job available, either:
@@ -79,7 +79,7 @@ static MICROEJ_ASYNC_WORKER_job_t* LLFS_allocate_path_job(uint8_t* path, SNI_cal
 	return job;
 }
 
-static int32_t LLFS_async_exec_path_job(uint8_t* path, SNI_callback* retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback* on_done){
+static int32_t LLFS_async_exec_path_job(uint8_t* path, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done){
 
 	MICROEJ_ASYNC_WORKER_job_t* job = LLFS_allocate_path_job(path, retry_function);
 	if(job == NULL){
@@ -99,7 +99,7 @@ static int32_t LLFS_async_exec_path_job(uint8_t* path, SNI_callback* retry_funct
 	}
 }
 
-static int32_t LLFS_async_exec_directory_job(int32_t directory_ID, SNI_callback* retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback* on_done){
+static int32_t LLFS_async_exec_directory_job(int32_t directory_ID, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, retry_function);
 	if(job == NULL){
 		// No job available, either:
@@ -154,7 +154,7 @@ static int32_t LLFS_IMPL_get_last_modified_on_done(uint8_t* path, LLFS_date_t* d
 
 int32_t LLFS_IMPL_get_last_modified(uint8_t* path, LLFS_date_t* date)
 {
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_get_last_modified, LLFS_IMPL_get_last_modified_action, (SNI_callback*)LLFS_IMPL_get_last_modified_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_get_last_modified, LLFS_IMPL_get_last_modified_action, (SNI_callback)LLFS_IMPL_get_last_modified_on_done);
 }
 
 static int32_t LLFS_IMPL_get_last_modified_on_done(uint8_t* path, LLFS_date_t* date){
@@ -184,13 +184,13 @@ static int64_t LLFS_IMPL_path64_function_on_done(uint8_t* path){
 }
 
 int32_t LLFS_IMPL_set_read_only(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_set_read_only, LLFS_IMPL_set_read_only_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_set_read_only, LLFS_IMPL_set_read_only_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 static int32_t LLFS_IMPL_create_on_done(uint8_t* path);
 
 int32_t LLFS_IMPL_create(uint8_t* path){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback*)LLFS_IMPL_create);
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_IMPL_create);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -203,7 +203,7 @@ int32_t LLFS_IMPL_create(uint8_t* path){
 		SNI_throwNativeIOException(LLFS_NOK, "Path name too long");
 	}
 	else{
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_create_action, (SNI_callback*)LLFS_IMPL_create_on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_create_action, (SNI_callback)LLFS_IMPL_create_on_done);
 		if(status == MICROEJ_ASYNC_WORKER_OK){
 			// Wait for the action to be done
 			return LLFS_OK;//returned value not used
@@ -230,13 +230,13 @@ static int32_t LLFS_IMPL_create_on_done(uint8_t* path){
 }
 
 int32_t LLFS_IMPL_open_directory(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_open_directory, LLFS_IMPL_open_directory_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_open_directory, LLFS_IMPL_open_directory_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 static int32_t LLFS_IMPL_read_directory_on_done(int32_t directory_ID, uint8_t* path);
 
 int32_t LLFS_IMPL_read_directory(int32_t directory_ID, uint8_t* path){
-	return LLFS_async_exec_directory_job(directory_ID, (SNI_callback*)LLFS_IMPL_read_directory, LLFS_IMPL_read_directory_action, (SNI_callback*)LLFS_IMPL_read_directory_on_done);
+	return LLFS_async_exec_directory_job(directory_ID, (SNI_callback)LLFS_IMPL_read_directory, LLFS_IMPL_read_directory_action, (SNI_callback)LLFS_IMPL_read_directory_on_done);
 }
 
 static int32_t LLFS_IMPL_read_directory_on_done(int32_t directory_ID, uint8_t* path){
@@ -265,7 +265,7 @@ static int32_t LLFS_IMPL_read_directory_on_done(int32_t directory_ID, uint8_t* p
 static int32_t LLFS_IMPL_close_directory_on_done(int32_t directory_ID);
 
 int32_t LLFS_IMPL_close_directory(int32_t directory_ID){
-	return LLFS_async_exec_directory_job(directory_ID, (SNI_callback*)LLFS_IMPL_close_directory, LLFS_IMPL_close_directory_action, (SNI_callback*)LLFS_IMPL_close_directory_on_done);
+	return LLFS_async_exec_directory_job(directory_ID, (SNI_callback)LLFS_IMPL_close_directory, LLFS_IMPL_close_directory_action, (SNI_callback)LLFS_IMPL_close_directory_on_done);
 }
 
 static int32_t LLFS_IMPL_close_directory_on_done(int32_t directory_ID){
@@ -280,7 +280,7 @@ static int32_t LLFS_IMPL_close_directory_on_done(int32_t directory_ID){
 static int32_t LLFS_IMPL_rename_to_on_done(uint8_t* path, uint8_t* new_path);
 
 int32_t LLFS_IMPL_rename_to(uint8_t* path, uint8_t* new_path){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback*)LLFS_IMPL_rename_to);
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_IMPL_rename_to);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -292,7 +292,7 @@ int32_t LLFS_IMPL_rename_to(uint8_t* path, uint8_t* new_path){
 	if(LLFS_set_path_param(path, (uint8_t*)&params->path) == LLFS_OK &&
 	   LLFS_set_path_param(new_path, (uint8_t*)&params->new_path) == LLFS_OK){
 
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_rename_to_action, (SNI_callback*)LLFS_IMPL_rename_to_on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_rename_to_action, (SNI_callback)LLFS_IMPL_rename_to_on_done);
 		if(status == MICROEJ_ASYNC_WORKER_OK){
 			// Wait for the action to be done
 			return LLFS_OK;//returned value not used
@@ -309,17 +309,17 @@ static int32_t LLFS_IMPL_rename_to_on_done(uint8_t* path, uint8_t* new_path){
 }
 
 int64_t LLFS_IMPL_get_length(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_get_length, LLFS_IMPL_get_length_action, (SNI_callback*)LLFS_IMPL_path64_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_get_length, LLFS_IMPL_get_length_action, (SNI_callback)LLFS_IMPL_path64_function_on_done);
 }
 
 int32_t LLFS_IMPL_exist(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_exist, LLFS_IMPL_exist_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_exist, LLFS_IMPL_exist_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 int64_t LLFS_IMPL_get_space_size_on_done(uint8_t* path, int32_t space_type);
 
 int64_t LLFS_IMPL_get_space_size(uint8_t* path, int32_t space_type){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback*)LLFS_IMPL_get_space_size);
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_IMPL_get_space_size);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -331,7 +331,7 @@ int64_t LLFS_IMPL_get_space_size(uint8_t* path, int32_t space_type){
 	if(LLFS_set_path_param(path, (uint8_t*)&params->path) == LLFS_OK){
 		params->space_type = space_type;
 
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_get_space_size_action, (SNI_callback*)LLFS_IMPL_get_space_size_on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_get_space_size_action, (SNI_callback)LLFS_IMPL_get_space_size_on_done);
 		if(status == MICROEJ_ASYNC_WORKER_OK){
 			// Wait for the action to be done
 			return LLFS_OK;//returned value not used
@@ -353,25 +353,25 @@ int64_t LLFS_IMPL_get_space_size_on_done(uint8_t* path, int32_t space_type){
 }
 
 int32_t LLFS_IMPL_make_directory(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_make_directory, LLFS_IMPL_make_directory_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_make_directory, LLFS_IMPL_make_directory_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 int32_t LLFS_IMPL_is_hidden(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_is_hidden, LLFS_IMPL_is_hidden_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_is_hidden, LLFS_IMPL_is_hidden_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 int32_t LLFS_IMPL_is_directory(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_is_directory, LLFS_IMPL_is_directory_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_is_directory, LLFS_IMPL_is_directory_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 int32_t LLFS_IMPL_is_file(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_is_file, LLFS_IMPL_is_file_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_is_file, LLFS_IMPL_is_file_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 static int32_t LLFS_IMPL_set_last_modified_on_done(uint8_t* path, LLFS_date_t* date);
 
 int32_t LLFS_IMPL_set_last_modified(uint8_t* path, LLFS_date_t* date){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback*)LLFS_IMPL_set_last_modified);
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_IMPL_set_last_modified);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -383,7 +383,7 @@ int32_t LLFS_IMPL_set_last_modified(uint8_t* path, LLFS_date_t* date){
 	if(LLFS_set_path_param(path, (uint8_t*)&params->path) == LLFS_OK){
 		params->date = *date;
 
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_set_last_modified_action, (SNI_callback*)LLFS_IMPL_set_last_modified_on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_set_last_modified_action, (SNI_callback)LLFS_IMPL_set_last_modified_on_done);
 		if(status == MICROEJ_ASYNC_WORKER_OK){
 			// Wait for the action to be done
 			return LLFS_OK;//returned value not used
@@ -400,13 +400,13 @@ static int32_t LLFS_IMPL_set_last_modified_on_done(uint8_t* path, LLFS_date_t* d
 }
 
 int32_t LLFS_IMPL_delete(uint8_t* path){
-	return LLFS_async_exec_path_job(path, (SNI_callback*)LLFS_IMPL_delete, LLFS_IMPL_delete_action, (SNI_callback*)LLFS_IMPL_path_function_on_done);
+	return LLFS_async_exec_path_job(path, (SNI_callback)LLFS_IMPL_delete, LLFS_IMPL_delete_action, (SNI_callback)LLFS_IMPL_path_function_on_done);
 }
 
 static int32_t LLFS_IMPL_is_accessible_on_done(uint8_t* path, int32_t access);
 
 int32_t LLFS_IMPL_is_accessible(uint8_t* path, int32_t access){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback*)LLFS_IMPL_is_accessible);
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_IMPL_is_accessible);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -418,7 +418,7 @@ int32_t LLFS_IMPL_is_accessible(uint8_t* path, int32_t access){
 	if(LLFS_set_path_param(path, (uint8_t*)&params->path) == LLFS_OK){
 		params->access = access;
 
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_is_accessible_action, (SNI_callback*)LLFS_IMPL_is_accessible_on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_is_accessible_action, (SNI_callback)LLFS_IMPL_is_accessible_on_done);
 		if(status == MICROEJ_ASYNC_WORKER_OK){
 			// Wait for the action to be done
 			return LLFS_OK;//returned value not used
@@ -437,7 +437,7 @@ static int32_t LLFS_IMPL_is_accessible_on_done(uint8_t* path, int32_t access){
 static int32_t LLFS_IMPL_set_permission_on_done(uint8_t* path, int32_t access, int32_t enable, int32_t owner);
 
 int32_t LLFS_IMPL_set_permission(uint8_t* path, int32_t access, int32_t enable, int32_t owner){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback*)LLFS_IMPL_set_permission);
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_IMPL_set_permission);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -451,7 +451,7 @@ int32_t LLFS_IMPL_set_permission(uint8_t* path, int32_t access, int32_t enable, 
 		params->enable = enable;
 		params->owner = owner;
 
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_set_permission_action, (SNI_callback*)LLFS_IMPL_set_permission_on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_set_permission_action, (SNI_callback)LLFS_IMPL_set_permission_on_done);
 		if(status == MICROEJ_ASYNC_WORKER_OK){
 			// Wait for the action to be done
 			return LLFS_OK;//returned value not used

@@ -6,7 +6,7 @@
  	Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
 -->
 <ivy-module version="2.0" xmlns:ea="http://www.easyant.org"> 
-    <info organisation="com.microej.clibrary.llimpl" module="fs-generic" status="integration" revision="1.0.1">
+    <info organisation="com.microej.clibrary.llimpl" module="fs-generic" status="integration" revision="1.1.0">
         <ea:build organisation="com.is2t.easyant.buildtypes" module="build-microej-ccomponent" revision="1.+">
         	<ea:property name="ccomponent.category" value="fs"/>
         </ea:build>
@@ -26,6 +26,6 @@
     
     <dependencies>
         <!-- your project dependencies goes here -->
-        <dependency org="com.microej.clibrary.platform" name="bsp-microej-async-worker" rev="[0.1.0-RC0,1.0.0-RC0[" transitive="false"/>
+        <dependency org="com.microej.clibrary.platform" name="bsp-microej-async-worker" rev="[0.2.0-RC0,1.0.0-RC0[" transitive="false"/>
     </dependencies>
 </ivy-module>

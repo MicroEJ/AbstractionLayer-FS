@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2019 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2020 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  *
@@ -303,6 +303,21 @@ typedef struct {
 	char* error_message; /*!< [OUT] Error message related to the error code. */
 } FS_available_t;
 
+
+/**
+ * @brief Data structure for file flushing operations.
+ *
+ * This structure is used by <code>LLFS_File_IMPL_flush</code>.
+ *
+ * Fields defined in this structure correspond to the parameters of this function, and
+ * <code>result</code> field corresponds to the value returned by it.
+ */
+typedef struct {
+	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
+	int32_t result; /*!< [OUT] Result of the operation. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
+	char* error_message; /*!< [OUT] Error message related to the error code. */
+} FS_flush_t;
 /**
  * @union FS_worker_param_t
  */
@@ -323,6 +338,7 @@ typedef union {
 	FS_close_t close;
 	FS_skip_t skip;
 	FS_available_t available;
+	FS_flush_t flush;
 } FS_worker_param_t;
 
 void LLFS_IMPL_get_last_modified_action(MICROEJ_ASYNC_WORKER_job_t* job);
@@ -350,6 +366,7 @@ void LLFS_File_IMPL_read_action(MICROEJ_ASYNC_WORKER_job_t* job);
 void LLFS_File_IMPL_close_action(MICROEJ_ASYNC_WORKER_job_t* job);
 void LLFS_File_IMPL_skip_action(MICROEJ_ASYNC_WORKER_job_t* job);
 void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_flush_action(MICROEJ_ASYNC_WORKER_job_t* job);
 
 // TODO Remove these defines once SNI 1.4 is available (see M0074FS-134)
 // Function succeeded
