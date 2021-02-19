@@ -4,7 +4,6 @@
  * Copyright 2014-2021 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
- *
  */
 
 #ifndef FS_HELPER_H
@@ -12,13 +11,15 @@
 
 /**
  * @file
- * @brief LLFS implementation.
+ * @brief LLFS helper implementation.
  * @author @CCO_AUTHOR@
  * @version @CCO_VERSION@
  * @date @CCO_DATE@
  */
 
 #include "fs_configuration.h"
+#include "microej_async_worker.h"
+#include "LLFS_impl.h"
 
 #ifdef __cplusplus
 	extern "C" {
@@ -37,10 +38,6 @@
  * Be careful when modifying the fields of the structures or when defining new structures.
  * See the comment of each structure to identify the ones that are affected by these constraints.
  */
-
-
-int32_t LLFS_set_path_param(uint8_t* path, uint8_t* path_param);
-extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
 
 /**
  * @brief Data structure for path operations.
@@ -303,7 +300,6 @@ typedef struct {
 	char* error_message; /*!< [OUT] Error message related to the error code. */
 } FS_available_t;
 
-
 /**
  * @brief Data structure for file flushing operations.
  *
@@ -318,6 +314,7 @@ typedef struct {
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
 	char* error_message; /*!< [OUT] Error message related to the error code. */
 } FS_flush_t;
+
 /**
  * @union FS_worker_param_t
  */
@@ -341,110 +338,183 @@ typedef union {
 	FS_flush_t flush;
 } FS_worker_param_t;
 
+/**
+ * @brief Action requested by <code>LLFS_IMPL_get_last_modified</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_get_last_modified_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_set_read_only</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_set_read_only_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_create</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_open_directory</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_read_directory</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_read_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_close_directory</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_close_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_rename_to</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_get_length</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_exist</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_get_space_size</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_make_directory</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_is_hidden</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_is_directory</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_is_file</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_set_last_modified</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_delete</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_is_accessible</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_IMPL_set_permission</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t* job);
 
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_open</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_write</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_read</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_read_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_close</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_close_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_skip</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_skip_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_available</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t* job);
+
+/**
+ * @brief Action requested by <code>LLFS_File_IMPL_flush</code> and executed asynchronously via async_worker.
+ *
+ * @param[in] job the context of the job, containing input/output parameters
+ */
 void LLFS_File_IMPL_flush_action(MICROEJ_ASYNC_WORKER_job_t* job);
-
-// TODO Remove these defines once SNI 1.4 is available (see M0074FS-134)
-// Function succeeded
-#define SNI_OK			(0)
-// An error was detected
-#define SNI_ERROR 		(-1)
-// An illegal argument has been given
-#define SNI_ILLEGAL_ARGUMENT (-2)
-
-// TODO Remove this function once SNI 1.4 is available (see M0074FS-134)
-/**
- * Gets the body of a Java byte array so it can be used outside of the scope of the current native function.
- * <p>
- * If the given Java array is an immortal array, then <code>out_buffer</code> is set to reference directly the
- * element at the offset <code>java_start</code> in the given Java array and <code>out_length</code> is set to
- * <code>java_length</code>.
- * If the given Java array is not an immortal array, then <code>out_buffer</code> is set to reference
- * <code>buffer</code>, <code>*out_length</code> is set to the smaller value of <code>java_length</code>
- * and <code>buffer_length</code>, and then, if <code>refresh_content</code> is true, <code>*out_length</code>
- * bytes are copied from the content of the Java array into <code>buffer</code>.
- * <p>
- * Since the returned array may be a copy of the Java array, changes made to the returned array will not necessarily
- * be reflected in the original Java array until <code>SNI_releaseArrayElements()</code> is called.
- * <p>
- * The function <code>SNI_releaseArrayElements()</code> doesn't have to be called if changes made to the returned
- * array don't need to be reflected in the original Java array.
- *
- * @param java_array the Java array.
- *
- * @param java_start the start offset in array <code>java_array</code> of the first element to get.
- *
- * @param java_length the maximum number of bytes to get.
- *
- * @param buffer the buffer to use if the given Java array is not immortal.
- *
- * @param buffer_length length in bytes of <code>buffer</code>.
- *
- * @param out_buffer output pointer to the retrieved elements.
- *
- * @param out_length the number of elements retrieved.
- *
- * @param refresh_content specifies whether or not the retrieved array will be initialized with the elements of the given Java array.
- *
- * @return <code>SNI_OK</code> on success. Returns <code>SNI_ILLEGAL_ARGUMENT</code> if <code>java_start</code> is
- * negative, <code>java_length</code> is negative, <code>java_length</code> is greater than
- * <code>SNI_getArrayLength(java_array) - java_start</code>, or one of the given pointers is null.
- */
-int32_t SNI_getArrayElements(int8_t* java_array, int32_t java_start, int32_t java_length, int8_t* buffer, uint32_t buffer_length, int8_t** out_buffer, uint32_t* out_length, bool refresh_content);
-
-// TODO Remove this function once SNI 1.4 is available (see M0074FS-134)
-/**
- * If necessary, this function copies back all the content of <code>buffer</code> to the Java array.
- * <p>
- * If the given Java array is an immortal array, this function does nothing.
- * If the given Java array is not an immortal array, then this function copies back all the content of
- * <code>buffer</code> to the Java array at the offset <code>java_start</code>.
- *
- * @param java_array the Java array.
- *
- * @param java_start the start offset in array <code>java_array</code> of the first element to release.
- *
- * @param java_length the maximum number of bytes to release.
- *
- * @param buffer the buffer to use if the given Java array is not immortal.
- *
- * @param buffer_length length in bytes of <code>buffer</code>.
- *
- * @return <code>SNI_OK</code> on success. Returns <code>SNI_ILLEGAL_ARGUMENT</code> if <code>java_start</code> is
- * negative, <code>java_length</code> is negative, <code>java_length</code> is greater than
- * <code>SNI_getArrayLength(java_array) - java_start</code>, <code>buffer_length</code> is greater than
- * <code>java_length</code>, or one of the given pointers is null.
- */
-int32_t SNI_releaseArrayElements(int8_t* java_array, int32_t java_start, int32_t java_length, int8_t* buffer, uint32_t buffer_length);
 
 #ifdef __cplusplus
 	}
 #endif
-
-
 
 #endif /* FS_HELPER_H */
