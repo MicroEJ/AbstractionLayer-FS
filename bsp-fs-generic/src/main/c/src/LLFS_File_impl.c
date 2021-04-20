@@ -289,6 +289,9 @@ static int32_t LLFS_File_IMPL_open_on_done(uint8_t* path, uint8_t mode){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_open_t* params = (FS_open_t*)job->params;
 
+	(void)path;
+	(void)mode;
+
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -313,6 +316,11 @@ static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t* data, int3
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
 
+	(void)file_id;
+	(void)data;
+	(void)offset;
+	(void)length;
+
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -336,6 +344,8 @@ static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t* data, int3
 static int32_t LLFS_File_IMPL_read_on_done(int32_t file_id, uint8_t* data, int32_t offset, int32_t length){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
+
+	(void)file_id;
 
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
@@ -365,6 +375,9 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
 
+	(void)file_id;
+	(void)data;
+
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -383,6 +396,8 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data){
 static int32_t LLFS_File_IMPL_read_byte_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
+
+	(void)file_id;
 
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
@@ -415,6 +430,8 @@ static void LLFS_File_IMPL_close_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_close_t* params = (FS_close_t*)job->params;
 
+	(void)file_id;
+
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -435,6 +452,9 @@ static void LLFS_File_IMPL_close_on_done(int32_t file_id){
 static int64_t LLFS_File_IMPL_skip_on_done(int32_t file_id, int64_t n){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_skip_t* params = (FS_skip_t*)job->params;
+
+	(void)file_id;
+	(void)n;
 
 	int64_t skipped_count;
 	if(params->result == LLFS_NOK){
@@ -462,6 +482,8 @@ static int32_t LLFS_File_IMPL_available_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_available_t* params = (FS_available_t*)job->params;
 
+	(void)file_id;
+
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -483,6 +505,8 @@ static int32_t LLFS_File_IMPL_available_on_done(int32_t file_id){
 static void LLFS_File_IMPL_flush_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_flush_t* params = (FS_flush_t*)job->params;
+
+	(void)file_id;
 
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
