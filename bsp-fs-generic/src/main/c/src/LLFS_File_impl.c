@@ -49,7 +49,10 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data);
 static int32_t LLFS_File_IMPL_read_on_done(int32_t file_id, uint8_t* data, int32_t offset, int32_t length);
 static int32_t LLFS_File_IMPL_read_byte_on_done(int32_t file_id);
 static void LLFS_File_IMPL_close_on_done(int32_t file_id);
-static int64_t LLFS_File_IMPL_skip_on_done(int32_t file_id, int64_t n);
+static void LLFS_File_IMPL_seek_on_done(int32_t file_id, int64_t n);
+static int64_t LLFS_File_IMPL_get_file_pointer_on_done(int32_t file_id);
+static void LLFS_File_IMPL_set_length_on_done(int32_t file_id, int64_t newLength);
+static int64_t LLFS_File_IMPL_get_length_with_fd_on_done(int32_t file_id);
 static int32_t LLFS_File_IMPL_available_on_done(int32_t file_id);
 static void LLFS_File_IMPL_flush_on_done(int32_t file_id);
 
@@ -119,20 +122,90 @@ void LLFS_File_IMPL_close(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
 }
 
-int64_t LLFS_File_IMPL_skip(int32_t file_id, int64_t n){
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_skip);
+void LLFS_File_IMPL_seek(int32_t file_id, int64_t n){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_seek);
 	if(job == NULL){
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
 		// - or an exception is pending
-		return LLFS_NOK;
+		return;
 	}
 
-	FS_skip_t* params = (FS_skip_t*)job->params;
+	FS_seek_t* params = (FS_seek_t*)job->params;
 	params->file_id = file_id;
 	params->n = n;
 
-	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_File_IMPL_skip_action, (SNI_callback)LLFS_File_IMPL_skip_on_done);
+	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_File_IMPL_seek_action, (SNI_callback)LLFS_File_IMPL_seek_on_done);
+	if(status == MICROEJ_ASYNC_WORKER_OK){
+		// Wait for the action to be done
+		return;
+	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
+
+	// Error
+	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	return;
+}
+
+int64_t LLFS_File_IMPL_get_file_pointer(int32_t file_id){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_get_file_pointer);
+	if(job == NULL){
+		// No job available, either:
+		// - wait for a job to be available and this function to be executed again,
+		// - or an exception is pending
+		return SNI_IGNORED_RETURNED_VALUE;;
+	}
+
+	FS_getfp_t* params = (FS_getfp_t*)job->params;
+	params->file_id = file_id;
+
+	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_File_IMPL_get_file_pointer_action, (SNI_callback)LLFS_File_IMPL_get_file_pointer_on_done);
+	if(status == MICROEJ_ASYNC_WORKER_OK){
+		// Wait for the action to be done
+		return SNI_IGNORED_RETURNED_VALUE;
+	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
+
+	// Error
+	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	return LLFS_NOK;
+}
+
+void LLFS_File_IMPL_set_length(int32_t file_id, int64_t newLength){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_set_length);
+	if(job == NULL){
+		// No job available, either:
+		// - wait for a job to be available and this function to be executed again,
+		// - or an exception is pending
+		return;
+	}
+
+	FS_set_length_t* params = (FS_set_length_t*)job->params;
+	params->file_id = file_id;
+	params->length = newLength;
+
+	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_File_IMPL_set_length_action, (SNI_callback)LLFS_File_IMPL_set_length_on_done);
+	if(status == MICROEJ_ASYNC_WORKER_OK){
+		// Wait for the action to be done
+		return;
+	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
+
+	// Error
+	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	return;
+}
+
+int64_t LLFS_File_IMPL_get_length_with_fd(int32_t file_id){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_get_length_with_fd);
+	if(job == NULL){
+		// No job available, either:
+		// - wait for a job to be available and this function to be executed again,
+		// - or an exception is pending
+		return SNI_IGNORED_RETURNED_VALUE;
+	}
+
+	FS_get_length_with_fd_t* params = (FS_get_length_with_fd_t*)job->params;
+	params->file_id = file_id;
+
+	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_File_IMPL_get_length_with_fd_action, (SNI_callback)LLFS_File_IMPL_get_length_with_fd_on_done);
 	if(status == MICROEJ_ASYNC_WORKER_OK){
 		// Wait for the action to be done
 		return SNI_IGNORED_RETURNED_VALUE;
@@ -165,6 +238,7 @@ int32_t LLFS_File_IMPL_available(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
 	return LLFS_NOK;
 }
+
 
 void LLFS_File_IMPL_flush(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_flush);
@@ -204,6 +278,7 @@ void LLFS_File_IMPL_flush(int32_t file_id){
  * @return <code>SNI_IGNORED_RETURNED_VALUE</code> on success, else a negative error code.
  */
 static int32_t LLFS_async_exec_write_read_job(int32_t file_id, uint8_t* data, int32_t offset, int32_t length, bool exec_write, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done){
+
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, retry_function);
 	if(job == NULL){
 		// No job available, either:
@@ -289,9 +364,6 @@ static int32_t LLFS_File_IMPL_open_on_done(uint8_t* path, uint8_t mode){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_open_t* params = (FS_open_t*)job->params;
 
-	(void)path;
-	(void)mode;
-
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -316,11 +388,6 @@ static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t* data, int3
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
 
-	(void)file_id;
-	(void)data;
-	(void)offset;
-	(void)length;
-
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -344,8 +411,6 @@ static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t* data, int3
 static int32_t LLFS_File_IMPL_read_on_done(int32_t file_id, uint8_t* data, int32_t offset, int32_t length){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
-
-	(void)file_id;
 
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
@@ -375,9 +440,6 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
 
-	(void)file_id;
-	(void)data;
-
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -396,8 +458,6 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data){
 static int32_t LLFS_File_IMPL_read_byte_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_write_read_t* params = (FS_write_read_t*)job->params;
-
-	(void)file_id;
 
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
@@ -430,8 +490,6 @@ static void LLFS_File_IMPL_close_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_close_t* params = (FS_close_t*)job->params;
 
-	(void)file_id;
-
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -442,33 +500,82 @@ static void LLFS_File_IMPL_close_on_done(int32_t file_id){
 }
 
 /**
- * @brief The <code>SNI_callback</code> called when the async_worker job requested by <code>LLFS_File_IMPL_skip</code> is done.
+ * @brief The <code>SNI_callback</code> called when the async_worker job requested by <code>LLFS_File_IMPL_seek</code> is done.
  *
  * @param[in] file_id file identifier.
- * @param[in] n the number of bytes to be skipped.
+ * @param[in] n the new position of the file pointer.
  *
- * @return <code>LLFS_File_IMPL_skip_action</code> function return code.
+ * @return <code>LLFS_File_IMPL_seek_action</code> function return code.
  */
-static int64_t LLFS_File_IMPL_skip_on_done(int32_t file_id, int64_t n){
+static void LLFS_File_IMPL_seek_on_done(int32_t file_id, int64_t n){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_skip_t* params = (FS_skip_t*)job->params;
+	FS_seek_t* params = (FS_seek_t*)job->params;
 
-	(void)file_id;
-	(void)n;
-
-	int64_t skipped_count;
 	if(params->result == LLFS_NOK){
 		// Exception
 		SNI_throwNativeIOException(params->error_code, params->error_message);
-		skipped_count = 0;
 	}
-	else {
-		skipped_count = params->skipped_count;
-	}
-
 	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+}
 
-	return skipped_count;
+/**
+ * @brief The <code>SNI_callback</code> called when the async_worker job requested by <code>LLFS_File_IMPL_get_file_pointer</code> is done.
+ *
+ * @param[in] file_id file identifier.
+ *
+ * @return <code>LLFS_File_IMPL_get_file_pointer_on_done</code> function return code.
+ */
+static int64_t LLFS_File_IMPL_get_file_pointer_on_done(int32_t file_id){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
+	FS_getfp_t* params = (FS_getfp_t*)job->params;
+
+	int64_t result = params->result;
+	if(params->result == LLFS_NOK){
+		// Exception
+		SNI_throwNativeIOException(params->error_code, params->error_message);
+		return LLFS_NOK;
+	}
+	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	return result;
+}
+
+/**
+ * @brief The <code>SNI_callback</code> called when the async_worker job requested by <code>LLFS_File_IMPL_set_length</code> is done.
+ *
+ * @param[in] file_id file identifier.
+ * @param[in] newLength the new length of the file.
+ *
+ * @return <code>LLFS_File_IMPL_set_length_action</code> function return code.
+ */
+static void LLFS_File_IMPL_set_length_on_done(int32_t file_id, int64_t newLength){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
+	FS_set_length_t* params = (FS_set_length_t*)job->params;
+
+	if(params->result == LLFS_NOK){
+		// Exception
+		SNI_throwNativeIOException(params->error_code, params->error_message);
+	}
+	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+}
+
+/**
+ * @brief The <code>SNI_callback</code> called when the async_worker job requested by <code>LLFS_File_IMPL_get_length_with_fd</code> is done.
+ *
+ * @param[in] file_id file identifier.
+ *
+ * @return <code>LLFS_IMPL_get_length_with_fd_action</code> function return code.
+ */
+static int64_t LLFS_File_IMPL_get_length_with_fd_on_done(int32_t file_id){
+	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
+	FS_get_length_with_fd_t* params = (FS_get_length_with_fd_t*)job->params;
+
+	int64_t result = params->result;
+	if(result == LLFS_NOK){
+		// Exception
+		SNI_throwNativeIOException(params->error_code, params->error_message);
+	}
+	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	return result;
 }
 
 /**
@@ -481,8 +588,6 @@ static int64_t LLFS_File_IMPL_skip_on_done(int32_t file_id, int64_t n){
 static int32_t LLFS_File_IMPL_available_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_available_t* params = (FS_available_t*)job->params;
-
-	(void)file_id;
 
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
@@ -506,8 +611,6 @@ static void LLFS_File_IMPL_flush_on_done(int32_t file_id){
 	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
 	FS_flush_t* params = (FS_flush_t*)job->params;
 
-	(void)file_id;
-
 	int32_t result = params->result;
 	if(result == LLFS_NOK){
 		// Exception
@@ -516,6 +619,7 @@ static void LLFS_File_IMPL_flush_on_done(int32_t file_id){
 
 	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
 }
+
 
 #ifdef __cplusplus
 	}

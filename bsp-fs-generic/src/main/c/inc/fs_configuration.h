@@ -70,7 +70,7 @@ extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
 /**
  * @brief Size of the FS stack in bytes.
  */
-//#define FS_WORKER_STACK_SIZE (1024*2)
+#define FS_WORKER_STACK_SIZE (1024*2)
 
 /**
  * @brief FS worker stack size must be calibrated, unless using a custom worker defined in another module.
