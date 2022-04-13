@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2022-04-13
+
+### Fixed
+- M0074FS-218 Fix compiler errors with strict compiler flags
 
 ## [2.0.0] - 2021-04-27
 
@@ -45,6 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial revision, extracted from CCO-FS-Posix.
 
 ---
-_Copyright 2019-2021 MicroEJ Corp. All rights reserved._  
+_Copyright 2019-2022 MicroEJ Corp. All rights reserved._  
 _ This library is provided in source code for use, modification and test, subject to license terms._  
 _Any modification of the source code will break MicroEJ Corp. warranties on the whole library._  
