@@ -4,51 +4,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2022-06-16
+
+### Changed
+
+ - Change license terms to MicroEJ Corp. BSD-style license.
+
 ## [2.0.1] - 2022-04-13
 
 ### Fixed
-- M0074FS-218 Fix compiler errors with strict compiler flags
+
+  - Fix compiler errors with strict compiler flags
 
 ## [2.0.0] - 2021-04-27
 
 ### Added
 
- - M0074FS-179 Implement seek, get file pointer, set length and length with fd actions.
- - M0074FS-179 Remove skip action.
+  - Implement seek, get file pointer, set length and length with fd actions.
+  - Remove skip action.
  
 
 
 ## [1.2.0] - 2021-02-15
 
 ### Changed
-- M0074FS-177 fs-generic cco: add support for custom worker
+ 
+  - fs-generic cco: add support for custom worker
 
 ### Fixed
-- M0074FS-174 Add missing inclusion of microej_async_worker.h and LLFS_impl.h in fs_helper.h
+
+  - Add missing inclusion of microej_async_worker.h and LLFS_impl.h in fs_helper.h
 
 ### Added
-- M0074FS-176 Add an optional llfs_init() function macro to define the initialization function of the file system stack.
+
+  - Add an optional llfs_init() function macro to define the initialization function of the file system stack.
 
 ## [1.1.0] - 2020-05-27
 
 ### Added
-- M0074FS-147 Add native flush implementation
-- M0074FS-149 Fix compilation warning/error: no value returned for non-void function.
+
+  - Add native flush implementation
+  - Fix compilation warning/error: no value returned for non-void function.
 
 ### Fixed
-- M0074FS-148: Fix CCO-FS-GENERIC after sni.h fix 
+
+  - M0074FS-148: Fix CCO-FS-GENERIC after sni.h fix 
 
 ## [1.0.1] - 2020-01-30
 
 ### Fixed
-- M0074FS-146: Read may throw an exception on EOF
+
+  - M0074FS-146: Read may throw an exception on EOF
 
 ## [1.0.0] - 2019-10-15
 
 ### Added
-- Initial revision, extracted from CCO-FS-Posix.
+
+  - Initial revision, extracted from CCO-FS-Posix.
 
 ---
+
 _Copyright 2019-2022 MicroEJ Corp. All rights reserved._  
-_ This library is provided in source code for use, modification and test, subject to license terms._  
-_Any modification of the source code will break MicroEJ Corp. warranties on the whole library._  
+_Use of this source code is governed by a BSD-style license that can be found with this software._  
