@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2022 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2023 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -16,12 +16,14 @@
  * @date @CCO_DATE@
  */
 
+#include <stdio.h>
 #include "microej_async_worker.h"
 
 #ifdef __cplusplus
 	extern "C" {
 #endif
 
+// cppcheck-suppress preprocessorErrorDirective // Platform specific configuration
 #error "This header must be customized with platform specific configuration. Remove this #error when done. This file is not modified when a new version of the CCO is installed."
 
 /**
@@ -53,6 +55,7 @@
 extern MICROEJ_ASYNC_WORKER_handle_t my_custom_worker;
 #define fs_worker my_custom_worker
 #else
+// cppcheck-suppress misra-c2012-5.5 // Macro name same as the global variable name for simplicity of implementation.
 extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
 #endif
 
@@ -110,7 +113,6 @@ int32_t LLFS_set_path_param(uint8_t* path, uint8_t* path_param);
 //#define LLFS_DEBUG
 
 #ifdef LLFS_DEBUG
-#include <stdio.h>
 #define LLFS_DEBUG_TRACE printf("[DEBUG] ");printf
 #else
 #define LLFS_DEBUG_TRACE(...) ((void) 0)
