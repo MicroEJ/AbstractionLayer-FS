@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2023 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -16,85 +16,135 @@
  * @date @CCO_DATE@
  */
 
-#include <stdio.h>
+// include MicroEJ User configuration file
+#include <sni.h>
+#if !defined(__CC_ARM)
+// cppcheck-suppress [misra-c2012-20.9]: The macro '__has_include' is defined by the toolchain.
+   #if __has_include("veeport_configuration.h")
+	  #include "veeport_configuration.h"
+   #endif // __has_include("veeport_configuration.h")
+#else
+   #warning "This C module needs a 'veeport_configuration.h' in your ARMCC project. "
+   #include "veeport_configuration.h"
+#endif // !defined ( __CC_ARM)
+
 #include "microej_async_worker.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
-
-// cppcheck-suppress preprocessorErrorDirective // Platform specific configuration
-#error "This header must be customized with platform specific configuration. Remove this #error when done. This file is not modified when a new version of the CCO is installed."
 
 /**
  * @brief Compatibility sanity check value.
- * This define value is checked in the implementation to validate that the version of this configuration
- * is compatible with the implementation.
- *
- * This value must not be changed by the user of the CCO.
- * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or modified.
  */
-#define FS_CONFIGURATION_VERSION (1)
+#if (defined(FS_MAJOR_CFG_VERSION) && ((FS_MAJOR_CFG_VERSION != 2) || (defined(FS_MINOR_CFG_VERSION) && \
+	((FS_MINOR_CFG_VERSION != 1) || (defined(FS_PATCH_CFG_VERSION) &&                                   \
+	(FS_PATCH_CFG_VERSION != 2))))))
+#error "This FS configuration version is different from the one declared in the veeport_configuration.h file."
+#endif
 
 /**
  * @brief Use this macro to define the initialization function of the file system stack.
  * Called from LLFS_IMPL_initialize().
  * By default this macro does nothing.
  */
-#define llfs_init()	((void)0)
+#ifndef llfs_init
+  #define llfs_init   (fs_helper_init)
+
+void fs_helper_init(void);
+#endif
 
 /**
- * @brief Set this define to use a custom worker to handle FS asynchronous jobs.
- */
-//#define FS_CUSTOM_WORKER
-
-/**
- * @brief Define FS custom worker if required.
+ * @brief Set the FS_CUSTOM_WORKER define to use a custom worker to handle FS asynchronous jobs. Define FS custom worker
+ * if required.
  */
 #ifdef FS_CUSTOM_WORKER
-extern MICROEJ_ASYNC_WORKER_handle_t my_custom_worker;
-#define fs_worker my_custom_worker
+
+/**
+ * @brief Set the FS_CUSTOM_WORKER_NAME define  the name of the custom worker if it used.
+ *
+ */
+#ifndef FS_CUSTOM_WORKER_NAME
+// cppcheck-suppress [misra-c2012-2.5]: macro defined for optional function implementations.
+  #define FS_CUSTOM_WORKER_NAME   my_custom_worker
+#endif
+
+/**
+ * @ brief Control structure used by the custom worker and defined from its name.
+ *
+ */
+extern MICROEJ_ASYNC_WORKER_handle_t FS_CUSTOM_WORKER_NAME;
+// cppcheck-suppress [misra-c2012-2.5]: macro defined for optional function implementations.
+#define fs_worker FS_CUSTOM_WORKER_NAME
+
 #else
-// cppcheck-suppress misra-c2012-5.5 // Macro name same as the global variable name for simplicity of implementation.
+/**
+ * @brief Control structure used by the default worker implemented in the C module AsyncWorker.
+ *
+ */
+// cppcheck-suppress [misra-c2012-5.5]: Macro name same as the global variable name for simplicity of implementation.
 extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
 #endif
 
 /**
  * @brief Number of workers dedicated to the FS in async_worker.
  */
-#define FS_WORKER_JOB_COUNT (4)
+#ifndef FS_WORKER_JOB_COUNT
+#define FS_WORKER_JOB_COUNT (1)
+#endif
 
 /**
  * @brief Size of the waiting list for FS jobs in async_worker.
  */
-#define FS_WAITING_LIST_SIZE (16)
+#ifndef FS_WAITING_LIST_SIZE
+#define FS_WAITING_LIST_SIZE (1)
+#endif
 
 /**
  * @brief Size of the FS stack in bytes.
  */
-#define FS_WORKER_STACK_SIZE (1024*2)
+#ifndef FS_WORKER_STACK_SIZE
+  #error The FS_WORKER_STACK_SIZE compatible must be defined.
+#endif
 
 /**
  * @brief FS worker stack size must be calibrated, unless using a custom worker defined in another module.
  */
 #if !defined(FS_CUSTOM_WORKER) && !defined(FS_WORKER_STACK_SIZE)
-#error "FS_WORKER_STACK_SIZE not declared. Please uncomment the line above to enable macro declaration and put the right value according to the stack size calibration done for your environment"
+#error \
+	"FS_WORKER_STACK_SIZE not declared. Please uncomment the line above to enable macro declaration and put the right value according to the stack size calibration done for your environment"
 #endif // FS_WORKER_STACK_SIZE
 
 /**
  * @brief Priority of the FS workers.
  */
-#define FS_WORKER_PRIORITY (6)
+#ifndef FS_WORKER_PRIORITY
+  #error The FS_WORKER_PRIORITY constant must be defined  in the veeport_configuration.h file.
+#endif
 
 /**
  * @brief Maximum path length.
  */
+#ifndef FS_PATH_LENGTH
 #define FS_PATH_LENGTH (256)
+#endif
 
 /**
  * @brief Size of the IO buffer in bytes.
  */
-#define FS_IO_BUFFER_SIZE (2048)
+#ifndef FS_IO_BUFFER_SIZE
+#define FS_IO_BUFFER_SIZE (1024)
+#endif
+
+/**
+ * @brief macro used to mark unused function parameters for MISRA compliance
+ */
+#define FS_UNUSED_PARAM(x)                     ((void)(x))
+
+/**
+ * @brief macro used to mark function calls for which the return value is ignored (MISRA compliance)
+ */
+#define FS_UNUSED_RETURN(x)                     (void)(x)
 
 /**
  * @brief Copies a file path from an input buffer to another buffer that will be sent to
@@ -105,21 +155,22 @@ extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
  *
  * @return <code>LLFS_OK</code> on success, else a negative error code.
  */
-int32_t LLFS_set_path_param(uint8_t* path, uint8_t* path_param);
+int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param);
 
 /**
  * @brief Set this define to print debug traces.
  */
-//#define LLFS_DEBUG
-
 #ifdef LLFS_DEBUG
-#define LLFS_DEBUG_TRACE printf("[DEBUG] ");printf
+  #ifndef LLFS_DEBUG_TRACE
+	#include <stdio.h>
+	#define LLFS_DEBUG_TRACE printf("[DEBUG][FS] "); printf
+  #endif
 #else
-#define LLFS_DEBUG_TRACE(...) ((void) 0)
+#define LLFS_DEBUG_TRACE(...) ((void)0)
 #endif
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // FS_CONFIGURATION_H
