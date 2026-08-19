@@ -13,7 +13,7 @@
  * @file
  * @brief LLFS caught exception codes and error definitions.
  * @author MicroEJ Developer Team
- * @version 1.0.0
+ * @version 2.2.1
  */
 
 #ifdef __cplusplus
