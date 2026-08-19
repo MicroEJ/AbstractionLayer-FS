@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-08-19
+
+### Changed
+
+- Remove the ``error_message`` field in ``fs_helper.h``, in favor of error codes defined in ``LLFS_errors.h``.
+- Refactor the project structure according to latest C Modules organization.
+- Record the MISRA C:2012 deviations of the module in ``cppcheck/suppressions.conf``.
+- Make ``LLFS_set_path_param`` more generic:
+  - Can now be called from C code as well, not only from Managed Code.
+  - Can be configured with ``FS_PATH_PREFIX``.
+
+### Fixed
+
+- Make the sources MISRA C:2012 compliant.
+
 ## [2.1.2] - 2025-04-09
 
 ### Added
@@ -79,5 +94,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-_Copyright 2019-2023 MicroEJ Corp. All rights reserved._  
+_Copyright 2019-2026 MicroEJ Corp. All rights reserved._  
 _Use of this source code is governed by a BSD-style license that can be found with this software._  

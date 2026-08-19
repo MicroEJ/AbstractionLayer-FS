@@ -1,16 +1,16 @@
 /*
  * C
  *
- * Copyright 2015-2023 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C.
  */
 
 /**
  * @file
- * @brief LLFS implementation with async worker.
- * @author @CCO_AUTHOR@
- * @version @CCO_VERSION@
- * @date @CCO_DATE@
+ * @brief LLFS path-level filesystem operations dispatched via async worker.
+ * @author MicroEJ Developer Team
+ * @version 2.2.0
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -22,6 +22,7 @@
 #include "LLFS_impl.h"
 #include "fs_configuration.h"
 #include "fs_helper.h"
+#include "veeport_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,12 +38,18 @@ extern "C" {
 
 #ifndef FS_CUSTOM_WORKER
 /* Async worker task declaration ---------------------------------------------*/
+// cppcheck-suppress [misra-c2012-5.5]: Macro name same as the global variable name for simplicity of implementation.
+/* cppcheck-suppress [misra-c2012-8.4, misra-c2012-19.2] ; both come from the vendored macro
+ * MICROEJ_ASYNC_WORKER_worker_declare: it defines the worker handle and takes the union of all
+ * parameter structures, which is the async-worker API. */
 MICROEJ_ASYNC_WORKER_worker_declare(fs_worker, FS_WORKER_JOB_COUNT, FS_worker_param_t, FS_WAITING_LIST_SIZE);
+/* cppcheck-suppress [misra-c2012-8.4, misra-c2012-10.4] ; both come from the vendored macro
+ * OSAL_task_stack_declare, which expands the Zephyr K_THREAD_STACK_DEFINE. */
 OSAL_task_stack_declare(fs_worker_stack, FS_WORKER_STACK_SIZE);
 #endif
 
-static MICROEJ_ASYNC_WORKER_job_t * LLFS_allocate_path_job(uint8_t *path, SNI_callback retry_function);
-static int32_t LLFS_async_exec_path_job(uint8_t *path, SNI_callback retry_function,
+static MICROEJ_ASYNC_WORKER_job_t * LLFS_allocate_path_job(const uint8_t *path, SNI_callback retry_function);
+static int32_t LLFS_async_exec_path_job(const uint8_t *path, SNI_callback retry_function,
                                         MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
 static int32_t LLFS_async_exec_directory_job(int32_t directory_ID, SNI_callback retry_function,
                                              MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
@@ -60,21 +67,30 @@ static int32_t LLFS_IMPL_set_permission_on_done(uint8_t *path, int32_t access, i
 static int32_t LLFS_async_exec_path_result(void);
 
 void LLFS_IMPL_initialize(void) {
+	static bool initialized = false;
+
+	if (!initialized) {
+		initialized = true;
+
 #ifndef FS_CUSTOM_WORKER
-	// cppcheck-suppress misra-c2012-11.8 // String casts conform to MICROEJ_ASYNC_WORKER_initialize function
-	// definitions.
-	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_initialize(&fs_worker, (uint8_t *)"MicroEJ FS",
-	                                                                       fs_worker_stack, FS_WORKER_PRIORITY);
-	if (status == MICROEJ_ASYNC_WORKER_INVALID_ARGS) {
-		SNI_throwNativeException(status, "Invalid argument for FS async worker");
-	} else if (status == MICROEJ_ASYNC_WORKER_ERROR) {
-		SNI_throwNativeException(status, "Error while initializing FS async worker");
-	} else {
-		// Default case: MICROEJ_ASYNC_WORKER_OK
-	}
+		// cppcheck-suppress misra-c2012-11.8 // String casts conform to MICROEJ_ASYNC_WORKER_initialize function
+		// definitions.
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_initialize(&fs_worker, (uint8_t *)"MicroEJ FS",
+		                                                                       fs_worker_stack, FS_WORKER_PRIORITY);
+		if (status == MICROEJ_ASYNC_WORKER_INVALID_ARGS) {
+			VEEPORT_ERRORS_throw_runtime_exception_message(RUNTIME_EXCEPTION_INVALID_STATE,
+			                                               "Invalid argument for FS async worker (%d)", (int)status);
+		} else if (status == MICROEJ_ASYNC_WORKER_ERROR) {
+			VEEPORT_ERRORS_throw_runtime_exception_message(RUNTIME_EXCEPTION_INVALID_STATE,
+			                                               "Error while initializing FS async worker (%d)",
+			                                               (int)status);
+		} else {
+			// Default case: MICROEJ_ASYNC_WORKER_OK
+		}
 #endif
 
-	llfs_init();
+		llfs_init();
+	}
 }
 
 int32_t LLFS_IMPL_get_max_path_length(void) {
@@ -103,9 +119,7 @@ int32_t LLFS_IMPL_create(uint8_t *path) {
 	}
 
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	if (LLFS_set_path_param(path, (uint8_t *)&params->path) != LLFS_OK) {
-		SNI_throwNativeIOException(LLFS_NOK, "Path name too long");
-	} else {
+	if (LLFS_set_path_param(path, (uint8_t *)&params->path) == LLFS_OK) {
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_create_action,
 		                                                                       (SNI_callback)LLFS_IMPL_create_on_done);
 		if (status == MICROEJ_ASYNC_WORKER_OK) {
@@ -115,7 +129,7 @@ int32_t LLFS_IMPL_create(uint8_t *path) {
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -162,7 +176,7 @@ int32_t LLFS_IMPL_rename_to(uint8_t *path, uint8_t *new_path) {
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -186,7 +200,7 @@ int64_t LLFS_IMPL_get_space_size(uint8_t *path, int32_t space_type) {
 		return LLFS_NOK;
 	}
 
-	FS_get_space_size *params = (FS_get_space_size *)job->params;
+	FS_get_space_size_t *params = (FS_get_space_size_t *)job->params;
 	if (LLFS_set_path_param(path, (uint8_t *)&params->path) == LLFS_OK) {
 		params->space_type = space_type;
 
@@ -201,7 +215,7 @@ int64_t LLFS_IMPL_get_space_size(uint8_t *path, int32_t space_type) {
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -250,7 +264,7 @@ int32_t LLFS_IMPL_set_last_modified(uint8_t *path, LLFS_date_t *date) {
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -284,7 +298,7 @@ int32_t LLFS_IMPL_is_accessible(uint8_t *path, int32_t access) {
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -315,20 +329,34 @@ int32_t LLFS_IMPL_set_permission(uint8_t *path, int32_t access, int32_t enable, 
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
-int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param) {
-	int32_t path_length = SNI_getArrayLength(path);
-	if (path_length > FS_PATH_LENGTH) {
-		// Path too long for the buffer
-		SNI_throwNativeException(LLFS_NOK, "Path length is too long");
-		return LLFS_NOK;
+int32_t LLFS_set_path_param(const uint8_t *path, uint8_t *path_param) {
+	int32_t ret_code = LLFS_NOK;
+#if defined(FS_PATH_PREFIX)
+	int32_t prefix_len = (int32_t)strlen(FS_PATH_PREFIX);
+#else
+	int32_t prefix_len = 0;
+#endif
+	int32_t path_len = (int32_t)strlen((const char *)path);
+	int32_t total_len = prefix_len + path_len + 1; // +1 for null terminator
+	if (total_len > FS_PATH_LENGTH) {
+		// Path too long for the buffer.
+		LLFS_DEBUG_TRACE("Path name too long\n");
+		VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_INVALID_ARGUMENT);
+	} else {
+		ret_code = LLFS_OK;
+#if defined(FS_PATH_PREFIX)
+		// cppcheck-suppress misra-c2012-11.4 // Cast from string literal to uint8_t* needed for path buffer
+		// compatibility.
+		(void)memcpy(path_param, (const uint8_t *)FS_PATH_PREFIX, (size_t)prefix_len);
+#endif
+		(void)memcpy(&path_param[prefix_len], path, (size_t)path_len);
+		path_param[prefix_len + path_len] = 0;
 	}
-	// cppcheck-suppress misra-c2012-17.7 // Return value does not require checking.
-	memcpy(path_param, path, path_length);
-	return LLFS_OK;
+	return ret_code;
 }
 
 /**
@@ -339,7 +367,7 @@ int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param) {
  *
  * @return an allocated job object or NULL if the allocation fails.
  */
-static MICROEJ_ASYNC_WORKER_job_t * LLFS_allocate_path_job(uint8_t *path, SNI_callback retry_function) {
+static MICROEJ_ASYNC_WORKER_job_t * LLFS_allocate_path_job(const uint8_t *path, SNI_callback retry_function) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
@@ -351,7 +379,7 @@ static MICROEJ_ASYNC_WORKER_job_t * LLFS_allocate_path_job(uint8_t *path, SNI_ca
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
 	if (LLFS_set_path_param(path, (uint8_t *)&params->path) != LLFS_OK) {
 		// Path name too long
-		MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+		FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 		return NULL;
 	}
 
@@ -373,7 +401,7 @@ static MICROEJ_ASYNC_WORKER_job_t * LLFS_allocate_path_job(uint8_t *path, SNI_ca
  *
  * @return <code>SNI_IGNORED_RETURNED_VALUE</code> on success, else a negative error code.
  */
-static int32_t LLFS_async_exec_path_job(uint8_t *path, SNI_callback retry_function,
+static int32_t LLFS_async_exec_path_job(const uint8_t *path, SNI_callback retry_function,
                                         MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
 	MICROEJ_ASYNC_WORKER_job_t *job = LLFS_allocate_path_job(path, retry_function);
 	if (job == NULL) {
@@ -386,7 +414,7 @@ static int32_t LLFS_async_exec_path_job(uint8_t *path, SNI_callback retry_functi
 	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, action, on_done);
 	if (status != MICROEJ_ASYNC_WORKER_OK) {
 		// an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
-		MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+		FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 		return LLFS_NOK;
 	} else {
 		// Wait for the action to be done
@@ -422,7 +450,7 @@ static int32_t LLFS_async_exec_directory_job(int32_t directory_ID, SNI_callback 
 
 	if (status != MICROEJ_ASYNC_WORKER_OK) {
 		// an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
-		MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+		FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 		return LLFS_NOK;
 	} else {
 		// Wait for the action to be done
@@ -441,7 +469,7 @@ static int32_t LLFS_async_exec_directory_job(int32_t directory_ID, SNI_callback 
  */
 static int32_t LLFS_IMPL_get_last_modified_on_done(uint8_t *path, LLFS_date_t *date) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_last_modified_t *params = (FS_last_modified_t *)job->params;
+	const FS_last_modified_t *params = (const FS_last_modified_t *)job->params;
 
 	FS_UNUSED_PARAM(path);
 
@@ -449,7 +477,7 @@ static int32_t LLFS_IMPL_get_last_modified_on_done(uint8_t *path, LLFS_date_t *d
 	if (result == LLFS_OK) {
 		*date = params->date;
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -486,12 +514,12 @@ static int32_t LLFS_IMPL_path_function_on_done(uint8_t *path) {
  */
 static int64_t LLFS_IMPL_path64_function_on_done(uint8_t *path) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_path64_operation_t *params = (FS_path64_operation_t *)job->params;
+	const FS_path64_operation_t *params = (const FS_path64_operation_t *)job->params;
 
 	FS_UNUSED_PARAM(path);
 
 	int64_t result = params->result;
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;
 }
 
@@ -505,16 +533,16 @@ static int64_t LLFS_IMPL_path64_function_on_done(uint8_t *path) {
  */
 static int32_t LLFS_IMPL_create_on_done(uint8_t *path) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_create_t *params = (FS_create_t *)job->params;
+	const FS_create_t *params = (const FS_create_t *)job->params;
 
 	FS_UNUSED_PARAM(path);
 
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -530,25 +558,27 @@ static int32_t LLFS_IMPL_create_on_done(uint8_t *path) {
  */
 static int32_t LLFS_IMPL_read_directory_on_done(int32_t directory_ID, uint8_t *path) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_read_directory_t *params = (FS_read_directory_t *)job->params;
+	const FS_read_directory_t *params = (const FS_read_directory_t *)job->params;
 
 	FS_UNUSED_PARAM(directory_ID);
 
 	int32_t result = params->result;
 	if (result == LLFS_OK) {
 		// Copy back the read path
+		/* cppcheck-suppress [misra-c2012-11.3, misra-c2012-18.4] ; both are inside the vendored SNI macro
+		 * SNI_getArrayLength, which reads the length stored ahead of the array data. */
 		int32_t java_path_length = SNI_getArrayLength(path);
-		int32_t path_length = strlen((char *)params->path) + (size_t)1;//add 1 for the terminating null byte ('\0').
+		int32_t path_length = strlen((const char *)params->path) + (size_t)1;//add 1 for the terminating null byte
+		                                                                     // ('\0').
 		if (java_path_length >= path_length) {
 			// Buffer large enough for the path
-			// cppcheck-suppress misra-c2012-17.7 // Return value does not require checking.
-			memcpy(path, params->path, path_length);
+			(void)memcpy(path, params->path, path_length);
 		} else {
 			// Path too long for the buffer
 			result = LLFS_NOK;
 		}
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -563,12 +593,12 @@ static int32_t LLFS_IMPL_read_directory_on_done(int32_t directory_ID, uint8_t *p
  */
 static int32_t LLFS_IMPL_close_directory_on_done(int32_t directory_ID) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_close_directory_t *params = (FS_close_directory_t *)job->params;
+	const FS_close_directory_t *params = (const FS_close_directory_t *)job->params;
 
 	FS_UNUSED_PARAM(directory_ID);
 
 	int32_t result = params->result;
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;
 }
 
@@ -599,13 +629,13 @@ static int32_t LLFS_IMPL_rename_to_on_done(uint8_t *path, uint8_t *new_path) {
  */
 static int64_t LLFS_IMPL_get_space_size_on_done(uint8_t *path, int32_t space_type) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_get_space_size *params = (FS_get_space_size *)job->params;
+	const FS_get_space_size_t *params = (const FS_get_space_size_t *)job->params;
 
 	FS_UNUSED_PARAM(path);
 	FS_UNUSED_PARAM(space_type);
 
 	int64_t result = params->result;
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;
 }
 
@@ -671,10 +701,10 @@ static int32_t LLFS_IMPL_set_permission_on_done(uint8_t *path, int32_t access, i
  */
 static int32_t LLFS_async_exec_path_result(void) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
+	const FS_path_operation_t *params = (const FS_path_operation_t *)job->params;
 
 	int32_t result = params->result;
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;
 }
 

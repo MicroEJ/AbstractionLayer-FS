@@ -1,16 +1,16 @@
 /*
  * C
  *
- * Copyright 2015-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C.
  */
 
 /**
  * @file
- * @brief LLFS_File implementation with async worker.
- * @author @CCO_AUTHOR@
- * @version @CCO_VERSION@
- * @date @CCO_DATE@
+ * @brief LLFS file-level I/O operations dispatched via async worker.
+ * @author MicroEJ Developer Team
+ * @version 2.2.0
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -22,6 +22,7 @@
 #include "LLFS_File_impl.h"
 #include "fs_configuration.h"
 #include "fs_helper.h"
+#include "veeport_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,9 +57,7 @@ int32_t LLFS_File_IMPL_open(uint8_t *path, uint8_t mode) {
 	}
 
 	FS_open_t *params = (FS_open_t *)job->params;
-	if (LLFS_set_path_param(path, (uint8_t *)&params->path) != LLFS_OK) {
-		SNI_throwNativeIOException(LLFS_NOK, "Path name too long");
-	} else {
+	if (LLFS_set_path_param(path, (uint8_t *)&params->path) == LLFS_OK) {
 		params->mode = mode;
 
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job,
@@ -71,7 +70,7 @@ int32_t LLFS_File_IMPL_open(uint8_t *path, uint8_t mode) {
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -117,7 +116,7 @@ void LLFS_File_IMPL_close(int32_t file_id) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 void LLFS_File_IMPL_seek(int32_t file_id, int64_t n) {
@@ -141,7 +140,7 @@ void LLFS_File_IMPL_seek(int32_t file_id, int64_t n) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return;
 }
 
@@ -169,7 +168,7 @@ int64_t LLFS_File_IMPL_get_file_pointer(int32_t file_id) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -197,7 +196,7 @@ void LLFS_File_IMPL_set_length(int32_t file_id, int64_t newLength) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return;
 }
 
@@ -224,7 +223,7 @@ int64_t LLFS_File_IMPL_get_length_with_fd(int32_t file_id) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -251,7 +250,7 @@ int32_t LLFS_File_IMPL_available(int32_t file_id) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -275,7 +274,7 @@ void LLFS_File_IMPL_flush(int32_t file_id) {
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 /**
@@ -312,7 +311,7 @@ static int32_t LLFS_async_exec_write_read_job(int32_t file_id, uint8_t *data, in
 	                                           (uint32_t *)&params->length, do_copy);
 
 	if (result != SNI_OK) {
-		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
+		VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_SNI_INTERNAL_ERROR);
 	} else {
 		params->file_id = file_id;
 
@@ -324,7 +323,7 @@ static int32_t LLFS_async_exec_write_read_job(int32_t file_id, uint8_t *data, in
 	}
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -368,7 +367,7 @@ static int32_t LLFS_async_exec_write_read_byte_job(int32_t file_id, int32_t data
 	} // else an error occurred and MICROEJ_ASYNC_WORKER_async_exec has thrown a SNI exception
 
 	// Error
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
 }
 
@@ -383,7 +382,7 @@ static int32_t LLFS_async_exec_write_read_byte_job(int32_t file_id, int32_t data
  */
 static int32_t LLFS_File_IMPL_open_on_done(uint8_t *path, uint8_t mode) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_open_t *params = (FS_open_t *)job->params;
+	const FS_open_t *params = (const FS_open_t *)job->params;
 
 	FS_UNUSED_PARAM(path);
 	FS_UNUSED_PARAM(mode);
@@ -391,9 +390,9 @@ static int32_t LLFS_File_IMPL_open_on_done(uint8_t *path, uint8_t mode) {
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -411,7 +410,7 @@ static int32_t LLFS_File_IMPL_open_on_done(uint8_t *path, uint8_t mode) {
  */
 static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t *data, int32_t offset, int32_t length) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_write_read_t *params = (FS_write_read_t *)job->params;
+	const FS_write_read_t *params = (const FS_write_read_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 	FS_UNUSED_PARAM(data);
@@ -421,9 +420,9 @@ static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t *data, int3
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -441,23 +440,24 @@ static int32_t LLFS_File_IMPL_write_on_done(int32_t file_id, uint8_t *data, int3
  */
 static int32_t LLFS_File_IMPL_read_on_done(int32_t file_id, uint8_t *data, int32_t offset, int32_t length) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_write_read_t *params = (FS_write_read_t *)job->params;
+	const FS_write_read_t *params = (const FS_write_read_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	} else if (result != LLFS_EOF) {
+		// cppcheck-suppress misra-c2012-11.8 // SNI API does not use const-qualified parameters.
 		int32_t release_result = SNI_flushArrayElements((int8_t *)data, offset, length, (int8_t *)params->data, result);
 		if (release_result != SNI_OK) {
-			SNI_throwNativeIOException(release_result, "SNI_flushArrayElements: Internal error");
+			VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_SNI_INTERNAL_ERROR);
 		}
 	} else {
 		// Successful: result hold the number of read bytes.
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -473,7 +473,7 @@ static int32_t LLFS_File_IMPL_read_on_done(int32_t file_id, uint8_t *data, int32
  */
 static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_write_read_t *params = (FS_write_read_t *)job->params;
+	const FS_write_read_t *params = (const FS_write_read_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 	FS_UNUSED_PARAM(data);
@@ -481,9 +481,9 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data) {
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 /**
@@ -496,26 +496,26 @@ static void LLFS_File_IMPL_write_byte_on_done(int32_t file_id, int32_t data) {
  */
 static int32_t LLFS_File_IMPL_read_byte_on_done(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_write_read_t *params = (FS_write_read_t *)job->params;
+	const FS_write_read_t *params = (const FS_write_read_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	} else if (result == 1) {
 		// 1 byte read: return the read byte
 		result = (uint8_t)params->data[0];
 	} else if (result != LLFS_EOF) {
 		// Invalid value returned by the read_byte action
-		SNI_throwNativeIOException(result, "Internal error");
+		VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_UNDEFINED);
 	} else {
 		// Successful: result hold the number of read bytes.
 	}
 	// else: result==LLFS_EOF: just return LLFS_EOF
 
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -530,17 +530,17 @@ static int32_t LLFS_File_IMPL_read_byte_on_done(int32_t file_id) {
  */
 static void LLFS_File_IMPL_close_on_done(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_close_t *params = (FS_close_t *)job->params;
+	const FS_close_t *params = (const FS_close_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
 
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 /**
@@ -554,16 +554,16 @@ static void LLFS_File_IMPL_close_on_done(int32_t file_id) {
  */
 static void LLFS_File_IMPL_seek_on_done(int32_t file_id, int64_t n) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_seek_t *params = (FS_seek_t *)job->params;
+	const FS_seek_t *params = (const FS_seek_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 	FS_UNUSED_PARAM(n);
 
 	if (params->result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 /**
@@ -576,17 +576,17 @@ static void LLFS_File_IMPL_seek_on_done(int32_t file_id, int64_t n) {
  */
 static int64_t LLFS_File_IMPL_get_file_pointer_on_done(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_getfp_t *params = (FS_getfp_t *)job->params;
+	const FS_getfp_t *params = (const FS_getfp_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int64_t result = params->result;
 	if (params->result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 		return LLFS_NOK;
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;
 }
 
@@ -601,16 +601,16 @@ static int64_t LLFS_File_IMPL_get_file_pointer_on_done(int32_t file_id) {
  */
 static void LLFS_File_IMPL_set_length_on_done(int32_t file_id, int64_t newLength) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_set_length_t *params = (FS_set_length_t *)job->params;
+	const FS_set_length_t *params = (const FS_set_length_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 	FS_UNUSED_PARAM(newLength);
 
 	if (params->result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 /**
@@ -623,16 +623,16 @@ static void LLFS_File_IMPL_set_length_on_done(int32_t file_id, int64_t newLength
  */
 static int64_t LLFS_File_IMPL_get_length_with_fd_on_done(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_get_length_with_fd_t *params = (FS_get_length_with_fd_t *)job->params;
+	const FS_get_length_with_fd_t *params = (const FS_get_length_with_fd_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int64_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;
 }
 
@@ -646,17 +646,17 @@ static int64_t LLFS_File_IMPL_get_length_with_fd_on_done(int32_t file_id) {
  */
 static int32_t LLFS_File_IMPL_available_on_done(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_available_t *params = (FS_available_t *)job->params;
+	const FS_available_t *params = (const FS_available_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
 
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 
 	return result;
 }
@@ -671,17 +671,17 @@ static int32_t LLFS_File_IMPL_available_on_done(int32_t file_id) {
  */
 static void LLFS_File_IMPL_flush_on_done(int32_t file_id) {
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
-	FS_flush_t *params = (FS_flush_t *)job->params;
+	const FS_flush_t *params = (const FS_flush_t *)job->params;
 
 	FS_UNUSED_PARAM(file_id);
 
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
 	}
 
-	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
+	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 }
 
 #ifdef __cplusplus

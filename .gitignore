@@ -1,1 +1,5 @@
-bsp-fs-generic/target~/
+target~
+/cppcheck/html-report
+
+### Git hooks ###
+.pre-commit-config.yaml

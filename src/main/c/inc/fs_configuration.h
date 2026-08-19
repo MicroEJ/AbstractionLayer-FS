@@ -1,8 +1,9 @@
 /*
  * C
  *
- * Copyright 2014-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C.
  */
 
 #ifndef  FS_CONFIGURATION_H
@@ -10,10 +11,9 @@
 
 /**
  * @file
- * @brief LLFS configuration.
- * @author @CCO_AUTHOR@
- * @version @CCO_VERSION@
- * @date @CCO_DATE@
+ * @brief LLFS configuration macros and user-overridable settings.
+ * @author MicroEJ Developer Team
+ * @version 2.2.0
  */
 
 // include MicroEJ User configuration file
@@ -30,6 +30,15 @@
 
 #include "microej_async_worker.h"
 
+/* <stdio.h> is pulled here, ahead of every declaration in this header, because the
+ * LLFS_DEBUG_TRACE default below needs printf and an #include may only be preceded by
+ * preprocessor directives and comments (MISRA C:2012 Rule 20.1). */
+#ifdef LLFS_DEBUG
+  #ifndef LLFS_DEBUG_TRACE
+	#include <stdio.h>
+  #endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,8 +47,8 @@ extern "C" {
  * @brief Compatibility sanity check value.
  */
 #if (defined(FS_MAJOR_CFG_VERSION) && ((FS_MAJOR_CFG_VERSION != 2) || (defined(FS_MINOR_CFG_VERSION) && \
-	((FS_MINOR_CFG_VERSION != 1) || (defined(FS_PATCH_CFG_VERSION) &&                                   \
-	(FS_PATCH_CFG_VERSION != 2))))))
+	((FS_MINOR_CFG_VERSION != 2) || (defined(FS_PATCH_CFG_VERSION) &&                                   \
+	(FS_PATCH_CFG_VERSION != 0))))))
 #error "This FS configuration version is different from the one declared in the veeport_configuration.h file."
 #endif
 
@@ -147,6 +156,14 @@ extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
 #define FS_UNUSED_RETURN(x)                     (void)(x)
 
 /**
+ * @brief Optional path prefix prepended to all file paths before passing them to the underlying
+ * filesystem. Define this macro in veeport_configuration.h to a string literal
+ * (e.g. @code #define FS_PATH_PREFIX "/SD:" @endcode).
+ * When not defined, no prefix is added.
+ */
+// FS_PATH_PREFIX is optional, define it in veeport_configuration.h if needed.
+
+/**
  * @brief Copies a file path from an input buffer to another buffer that will be sent to
  * the async_worker job, checking against path size constraints.
  *
@@ -155,14 +172,13 @@ extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
  *
  * @return <code>LLFS_OK</code> on success, else a negative error code.
  */
-int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param);
+int32_t LLFS_set_path_param(const uint8_t *path, uint8_t *path_param);
 
 /**
  * @brief Set this define to print debug traces.
  */
 #ifdef LLFS_DEBUG
   #ifndef LLFS_DEBUG_TRACE
-	#include <stdio.h>
 	#define LLFS_DEBUG_TRACE printf("[DEBUG][FS] "); printf
   #endif
 #else

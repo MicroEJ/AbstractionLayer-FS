@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -10,13 +10,13 @@
 
 /**
  * @file
- * @brief LLFS helper implementation.
- * @author @CCO_AUTHOR@
- * @version @CCO_VERSION@
- * @date @CCO_DATE@
+ * @brief Data structures and action declarations for LLFS async worker jobs.
+ * @author MicroEJ Developer Team
+ * @version 2.2.0
  */
 
 #include "fs_configuration.h"
+#include "LLFS_errors.h"
 #include "microej_async_worker.h"
 #include "LLFS_impl.h"
 
@@ -100,8 +100,7 @@ typedef struct {
 typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_create_t;
 
 /**
@@ -136,7 +135,7 @@ typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
 	int32_t space_type; /*!< [IN] Type of space. */
-} FS_get_space_size;
+} FS_get_space_size_t;
 
 /**
  * @brief Data structure for operations about file accessibility.
@@ -189,8 +188,7 @@ typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	uint8_t mode; /*!< [IN] Opening mode. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_open_t;
 
 /**
@@ -248,8 +246,7 @@ typedef struct {
 	uint8_t *data; /*!< [IN/OUT] Data read (output) or data to write (input). */
 	int32_t length; /*!< [IN] Length of the data. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 	uint8_t buffer[FS_IO_BUFFER_SIZE]; /*!< Internal buffer. Content must not be modified. */
 } FS_write_read_t;
 
@@ -264,8 +261,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_close_t;
 
 /**
@@ -280,8 +276,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t n; /*!< [IN] the new position of the file pointer. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_seek_t;
 
 /**
@@ -295,8 +290,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_getfp_t;
 
 /**
@@ -311,8 +305,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t length; /*!< [IN] the new length of the file. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_set_length_t;
 
 /**
@@ -326,8 +319,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_get_length_with_fd_t;
 
 /**
@@ -341,8 +333,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_available_t;
 
 /**
@@ -356,8 +347,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] Error code returned in case of error (LLFS_CAUGHT_EXCEPTION_*). */
 } FS_flush_t;
 /**
  * @union FS_worker_param_t
