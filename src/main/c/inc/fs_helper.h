@@ -12,7 +12,7 @@
  * @file
  * @brief Data structures and action declarations for LLFS async worker jobs.
  * @author MicroEJ Developer Team
- * @version 2.2.1
+ * @version 2.3.0
  */
 
 #include "fs_configuration.h"

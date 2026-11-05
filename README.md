@@ -1,4 +1,3 @@
-![ARCH](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/arch_8.0.json)
 ![FS](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/fs_6.json)
 
 # Abstraction Layer File System
@@ -39,8 +38,10 @@ Here is a non-exhaustive list of tested environments:
   - VEEPort-STM32F7508-DK 2.3.3 (FatFS back-end)
   - VEEPort-Zephyr 3.0.0 (Zephyr FS over FatFS back-end)
   - VEEPort-Linux 3.3.1 (LLFS over FS POSIX back-end)
+  - A VEE Port for STM32U5G9 with ThreadX (FileX back-end)
 - C Modules:
   - AbstractionLayer-Essentials 1.0.0
+  - FS FileX 1.1.0
 
 # MISRA Compliance
 
@@ -51,15 +52,19 @@ It has been verified with Cppcheck v2.19. Here is the list of deviations from MI
 |:----------:|:--------:|:----------------------------------------------------------------------------------------------------- |
 |  Rule 2.3  | Advisory | A type can be defined at API level and not used by the application                                   |
 |  Rule 2.5  | Advisory | A macro can be defined at API level and not used by the application                                  |
+|  Rule 5.5  | Required | A macro has the same name as the global variable it gives access to, for simplicity of implementation. |
 |  Rule 8.4  | Required | Objects defined by macros expanding from external libraries (async_worker, osal)                     |
 |  Rule 8.7  | Advisory | Public API functions require external linkage as they are entry points called from Java via SNI      |
 |  Rule 11.3 | Required | Cast used by many C framework to factorize code                                                      |
+|  Rule 11.4 | Advisory | A string literal path is converted to the `uint8_t *` path buffer type.                              |
 |  Rule 11.5 | Advisory | Used for code genericity/abstraction                                                                 |
+|  Rule 11.8 | Required | The SNI and async worker APIs take non-const pointers.                                               |
 |  Rule 15.5 | Advisory | Multiple return points are used for early error exits to simplify control flow                       |
 |  Rule 18.4 | Advisory | Can be used in configurable C library                                                                |
 |  Rule 19.2 | Advisory | Can be useful when designing C library                                                               |
 |  Rule 20.1 | Advisory | Extern "C" block wraps includes and code together per coding conventions                             |
 |  Rule 20.7 | Required | Macro parameters used in type declarations cannot be parenthesized                                   |
+|  Rule 20.9 | Required | The `__has_include` macro is defined by the toolchain.                                               |
 |  Rule 20.10| Advisory | Used by MicroEJ architectures                                                                        |
 |  Rule 20.12| Advisory | Used by legacy LL APIs C header files automatically generated                                        |
 |  Rule 21.6 | Required | Used for printf debugging                                                                            |

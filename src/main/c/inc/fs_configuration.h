@@ -13,7 +13,7 @@
  * @file
  * @brief LLFS configuration macros and user-overridable settings.
  * @author MicroEJ Developer Team
- * @version 2.2.1
+ * @version 2.3.0
  */
 
 // include MicroEJ User configuration file

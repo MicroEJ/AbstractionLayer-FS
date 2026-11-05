@@ -13,7 +13,7 @@
  * @file
  * @brief LLFS caught exception codes and error definitions.
  * @author MicroEJ Developer Team
- * @version 2.2.1
+ * @version 2.3.0
  */
 
 #ifdef __cplusplus
@@ -53,6 +53,8 @@ extern "C" {
 #define LLFS_CAUGHT_EXCEPTION_PERMISSION         (-14)
 /** @brief File size query failed */
 #define LLFS_CAUGHT_EXCEPTION_FILE_SIZE          (-15)
+/** @brief File identifier of a closed file */
+#define LLFS_CAUGHT_EXCEPTION_CLOSED_FILE        (-16)
 
 #ifdef __cplusplus
 }

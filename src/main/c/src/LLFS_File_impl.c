@@ -10,7 +10,7 @@
  * @file
  * @brief LLFS file-level I/O operations dispatched via async worker.
  * @author MicroEJ Developer Team
- * @version 2.2.1
+ * @version 2.3.0
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -23,11 +23,22 @@
 #include "fs_configuration.h"
 #include "fs_helper.h"
 #include "veeport_errors.h"
+#include "LLFS_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * @brief Value of the descriptor field of a Java stream once it is closed.
+ *
+ * A Java method that does not check the closed state can send this value. The file system helper would cast it to
+ * a pointer, so every native that receives a file identifier rejects it first. Only this value is rejected: another
+ * negative identifier is a valid pointer cast on some targets.
+ */
+#define LLFS_CLOSED_FILE_ID (-1)
+
+static bool LLFS_is_closed_file_id(int32_t file_id);
 static int32_t LLFS_async_exec_write_read_job(int32_t file_id, uint8_t *data, int32_t offset, int32_t length,
                                               bool exec_write, SNI_callback retry_function,
                                               MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
@@ -97,6 +108,9 @@ int32_t LLFS_File_IMPL_read_byte(int32_t file_id) {
 }
 
 void LLFS_File_IMPL_close(int32_t file_id) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_close);
 	if (job == NULL) {
 		// No job available, either:
@@ -120,6 +134,9 @@ void LLFS_File_IMPL_close(int32_t file_id) {
 }
 
 void LLFS_File_IMPL_seek(int32_t file_id, int64_t n) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_seek);
 	if (job == NULL) {
 		// No job available, either:
@@ -145,6 +162,9 @@ void LLFS_File_IMPL_seek(int32_t file_id, int64_t n) {
 }
 
 int64_t LLFS_File_IMPL_get_file_pointer(int32_t file_id) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return LLFS_NOK;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker,
 	                                                                    (SNI_callback)LLFS_File_IMPL_get_file_pointer);
 	if (job == NULL) {
@@ -173,6 +193,9 @@ int64_t LLFS_File_IMPL_get_file_pointer(int32_t file_id) {
 }
 
 void LLFS_File_IMPL_set_length(int32_t file_id, int64_t newLength) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker,
 	                                                                    (SNI_callback)LLFS_File_IMPL_set_length);
 	if (job == NULL) {
@@ -201,6 +224,9 @@ void LLFS_File_IMPL_set_length(int32_t file_id, int64_t newLength) {
 }
 
 int64_t LLFS_File_IMPL_get_length_with_fd(int32_t file_id) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return LLFS_NOK;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker,
 	                                                                    (SNI_callback)LLFS_File_IMPL_get_length_with_fd);
 	if (job == NULL) {
@@ -228,6 +254,9 @@ int64_t LLFS_File_IMPL_get_length_with_fd(int32_t file_id) {
 }
 
 int32_t LLFS_File_IMPL_available(int32_t file_id) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return LLFS_NOK;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker,
 	                                                                    (SNI_callback)LLFS_File_IMPL_available);
 	if (job == NULL) {
@@ -255,6 +284,9 @@ int32_t LLFS_File_IMPL_available(int32_t file_id) {
 }
 
 void LLFS_File_IMPL_flush(int32_t file_id) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, (SNI_callback)LLFS_File_IMPL_flush);
 	if (job == NULL) {
 		// No job available, either:
@@ -295,6 +327,9 @@ void LLFS_File_IMPL_flush(int32_t file_id) {
 static int32_t LLFS_async_exec_write_read_job(int32_t file_id, uint8_t *data, int32_t offset, int32_t length,
                                               bool exec_write, SNI_callback retry_function,
                                               MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return LLFS_NOK;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
@@ -343,6 +378,9 @@ static int32_t LLFS_async_exec_write_read_job(int32_t file_id, uint8_t *data, in
 static int32_t LLFS_async_exec_write_read_byte_job(int32_t file_id, int32_t data, bool exec_write,
                                                    SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action,
                                                    SNI_callback on_done) {
+	if (LLFS_is_closed_file_id(file_id)) {
+		return LLFS_NOK;
+	}
 	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&fs_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
@@ -369,6 +407,26 @@ static int32_t LLFS_async_exec_write_read_byte_job(int32_t file_id, int32_t data
 	// Error
 	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return LLFS_NOK;
+}
+
+/**
+ * @brief Rejects the identifier of a closed Java stream before a job is allocated.
+ *
+ * When the identifier is <code>LLFS_CLOSED_FILE_ID</code>, a NativeIOException with the code
+ * <code>LLFS_CAUGHT_EXCEPTION_CLOSED_FILE</code> is pending when this function returns, and the caller must return
+ * without touching the file system helper.
+ *
+ * @param[in] file_id file identifier.
+ *
+ * @return true when the identifier is the one of a closed stream, false otherwise.
+ */
+static bool LLFS_is_closed_file_id(int32_t file_id) {
+	bool is_closed = false;
+	if (LLFS_CLOSED_FILE_ID == file_id) {
+		VEEPORT_ERRORS_throw_caught_exception(LLFS_CAUGHT_EXCEPTION_CLOSED_FILE);
+		is_closed = true;
+	}
+	return is_closed;
 }
 
 /**
@@ -581,10 +639,9 @@ static int64_t LLFS_File_IMPL_get_file_pointer_on_done(int32_t file_id) {
 	FS_UNUSED_PARAM(file_id);
 
 	int64_t result = params->result;
-	if (params->result == LLFS_NOK) {
+	if (result == LLFS_NOK) {
 		// Exception
 		VEEPORT_ERRORS_throw_caught_exception(params->error_code);
-		return LLFS_NOK;
 	}
 	FS_UNUSED_RETURN(MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job));
 	return result;

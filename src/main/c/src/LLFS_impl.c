@@ -10,7 +10,7 @@
  * @file
  * @brief LLFS path-level filesystem operations dispatched via async worker.
  * @author MicroEJ Developer Team
- * @version 2.2.1
+ * @version 2.3.0
  */
 
 /* Includes ------------------------------------------------------------------*/

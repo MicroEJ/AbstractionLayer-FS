@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-11-04
+
+### Added
+
+- Reject the identifier of a closed file in the file natives with an `IOException` (code `LLFS_CAUGHT_EXCEPTION_CLOSED_FILE`).
+
+### Changed
+
+- Update the Async Worker dependency to version 0.6.0.
+
+### Fixed
+
+- Fix the file operations that stop working after repeated errors when reading the file pointer.
+
 ## [2.2.1] - 2026-08-19
 
 ### Changed
